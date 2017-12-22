@@ -204,6 +204,9 @@ FUCKME(void, , ts__initCanvas);
 FUCKME(void, , ts__onWindowReactivate);
 FUCKME(void, , ts__resetCanvas);
 FUCKME(void, , ts__restartAudio);
+//base/client/mission.cs.dso
+FUCKME(void, , ts__clientCmdMissionStart);
+FUCKME(void, , ts__clientCmdMissionEnd);
 //Call a function
 BLFUNC_EXTERN(void, , RawCall, S32 argc, const char* argv);
 
