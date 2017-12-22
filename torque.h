@@ -1,5 +1,7 @@
 #pragma once
 #include <windows.h>
+#include <iostream>
+#include <cstdarg>
 
 typedef unsigned int U32;
 typedef signed int S32;
@@ -66,7 +68,7 @@ struct Namespace
 						///        as a means of testing reference state.
 	char * lastUsage;
 };
-
+static Namespace* GlobalNS;
 struct ConsoleObject
 {
 };
@@ -122,6 +124,10 @@ struct SimEvent
 	typedef returnType (convention*name##Fn)(__VA_ARGS__); \
 	static name##Fn name;
 
+#define FUCKME(returnType, convention, name) \
+	extern returnType name(SimObject* obj, int argc, const char** argv); \
+	typedef returnType (convention*name##Fn)(SimObject* obj, int argc, const char** argv);
+
 //Typedef an exported engine function to use it later
 #define BLFUNC_EXTERN(returnType, convention, name, ...)  \
 	typedef returnType (convention*name##Fn)(__VA_ARGS__); \
@@ -130,17 +136,16 @@ struct SimEvent
 //Search for an engine function in blockland
 #define BLSCAN(target, pattern, mask)            \
 	target = (target##Fn)ScanFunc(pattern, mask); \
-	if(target == NULL)                             \
-		Printf("torquedll | Cannot find function "#target"!");
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ /////////////////////////////////////////////////////////////////////////////////
 //Engine function declarations
 
 //Con::printf
 BLFUNC_EXTERN(void, , Printf, const char* format, ...);
 
 extern const char *StringTableEntry(const char *str, bool caseSensitive = false);
+void* ts__fastCall(Namespace::Entry* ourCall, SimObject** obj, int argc, ...);
+Namespace::Entry* fastLookup(const char* ourNamespace, const char* name);
+
 extern DWORD StringTable;
 extern bool setDatablock;
 BLFUNC_EXTERN(bool, , initGame, int argc, const char **argv);
@@ -185,7 +190,12 @@ void ConsoleVariable(const char *name, char *data);
 
 //Evaluate a torquescript string in global scope
 const char* Eval(const char* str);
-
+//Motherfucker.
+FUCKME(void, , ts__onDatablockLimitExceeded);
+FUCKME(void, , ts__onDatablocksDeleted);
+FUCKME(void, , ts__initCommon);
+FUCKME(void, , ts__initBaseClient);
+FUCKME(void, , ts__initBaseServer);
 //Call a function
 BLFUNC_EXTERN(void, , RawCall, S32 argc, const char* argv);
 

@@ -1,4 +1,4 @@
-i686-w64-mingw32-gcc -shared "./dllmain.cpp" "./Torque.cpp" -g \
+i686-w64-mingw32-gcc -shared "./dllmain.cpp" "./main.cpp" "./Torque.cpp" -g \
 -o "Rewrite.dll" \
 -I./include \
 -static \
