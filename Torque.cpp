@@ -216,7 +216,11 @@ void rewrite__fatal() {
 	Printf("!!! THIS SHOULD NEVER HAPPEN !!!");
 }
 
-void* ts__fastCall(Namespace::Entry* ourCall, SimObject** obj = NULL, int argc = 0, ...) {
+void* ts__fastCall(Namespace::Entry* ourCall, SimObject* obj = NULL, int argc = 0, ...) {
+	if(ourCall == NULL) {
+		Printf("Invalid entry.");
+		return nullptr;
+	}
 	const char* argv[argc + 1];
 	va_list args;
 	va_start(args, argc);
@@ -225,6 +229,7 @@ void* ts__fastCall(Namespace::Entry* ourCall, SimObject** obj = NULL, int argc =
 		argv[i + 1] = va_arg(args, const char*);
 	}
 	argc++;
+	va_end(args);
 	if(ourCall->mType == Namespace::Entry::ScriptFunctionType) {
 		if(ourCall->mFunctionOffset) {
 			const char* retVal = CodeBlock__exec(
@@ -249,7 +254,7 @@ void* ts__fastCall(Namespace::Entry* ourCall, SimObject** obj = NULL, int argc =
 	}
 	else
 	{
-		actualObj = *obj;
+		actualObj = obj;
 	}
 	switch(ourCall->mType) {
 		case Namespace::Entry::StringCallbackType:

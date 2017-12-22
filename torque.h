@@ -143,7 +143,7 @@ struct SimEvent
 BLFUNC_EXTERN(void, , Printf, const char* format, ...);
 
 extern const char *StringTableEntry(const char *str, bool caseSensitive = false);
-void* ts__fastCall(Namespace::Entry* ourCall, SimObject** obj, int argc, ...);
+void* ts__fastCall(Namespace::Entry* ourCall, SimObject* obj, int argc, ...);
 Namespace::Entry* fastLookup(const char* ourNamespace, const char* name);
 
 extern DWORD StringTable;
@@ -199,6 +199,11 @@ FUCKME(void, , ts__initBaseServer);
 //base/client/audio.cs.dso
 FUCKME(void, , ts__openALInit);
 FUCKME(void, , ts__openALShutdown);
+//base/client/canvas.cs.dso
+FUCKME(void, , ts__initCanvas);
+FUCKME(void, , ts__onWindowReactivate);
+FUCKME(void, , ts__resetCanvas);
+FUCKME(void, , ts__restartAudio);
 //Call a function
 BLFUNC_EXTERN(void, , RawCall, S32 argc, const char* argv);
 
