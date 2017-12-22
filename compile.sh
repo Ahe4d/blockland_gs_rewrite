@@ -1,4 +1,4 @@
-i686-w64-mingw32-gcc -shared "./dllmain.cpp" "./main.cpp" "./Torque.cpp" -g \
+i686-w64-mingw32-gcc -shared "./dllmain.cpp" "./main.cpp" "./client_audio.cpp" "./Torque.cpp" -g \
 -o "Rewrite.dll" \
 -I./include \
 -static \
@@ -9,5 +9,5 @@ i686-w64-mingw32-gcc -shared "./dllmain.cpp" "./main.cpp" "./Torque.cpp" -g \
 -lpthread \
 -w 
 
-cp Rewrite.dll ~/BlocklandPortable/modules/OurRewrite.dll
+mv Rewrite.dll ~/BlocklandPortable/modules/OurRewrite.dll
 

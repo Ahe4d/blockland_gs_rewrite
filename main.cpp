@@ -20,7 +20,7 @@ void ts__initCommon(SimObject* obj, int argc, const char* argv[]) {
 	ts__fastCall(fastLookup("", "setRandomSeed"), NULL, 0);
 	Namespace::Entry* exec = fastLookup("", "exec");
 	ts__fastCall(exec, NULL, 1, "base/client/canvas.cs");
-	ts__fastCall(exec, NULL, 1, "base/client/audio.cs");
+	//ts__fastCall(exec, NULL, 1, "base/client/audio.cs");
 }
 
 void ts__initBaseClient(SimObject* obj, int argc, const char* argv[]) {

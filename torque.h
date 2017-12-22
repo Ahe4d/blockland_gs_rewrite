@@ -196,6 +196,9 @@ FUCKME(void, , ts__onDatablocksDeleted);
 FUCKME(void, , ts__initCommon);
 FUCKME(void, , ts__initBaseClient);
 FUCKME(void, , ts__initBaseServer);
+//base/client/audio.cs.dso
+FUCKME(void, , ts__openALInit);
+FUCKME(void, , ts__openALShutdown);
 //Call a function
 BLFUNC_EXTERN(void, , RawCall, S32 argc, const char* argv);
 
