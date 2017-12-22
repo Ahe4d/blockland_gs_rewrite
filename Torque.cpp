@@ -331,7 +331,7 @@ Namespace::Entry* fastLookup(const char* ourNamespace, const char* name) {
 	else {
 		entry = Namespace__lookup(ns, StringTableEntry(name));
 		if(entry == NULL) {
-			Printf("Could not find function.");
+			Printf("Could not find function %s with a namespace of %s.", name, ourNamespace);
 			return nullptr;
 		}
 		cache.insert(cache.end(), std::make_pair(name, entry)); //Insert it so further calls are optimized.

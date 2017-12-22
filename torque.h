@@ -207,6 +207,9 @@ FUCKME(void, , ts__restartAudio);
 //base/client/mission.cs.dso
 FUCKME(void, , ts__clientCmdMissionStart);
 FUCKME(void, , ts__clientCmdMissionEnd);
+//base/client/message.cs.dso
+FUCKME(void, , ts__addMessageCallback);
+FUCKME(void, , ts__clientCmdChatMessage);
 //Call a function
 BLFUNC_EXTERN(void, , RawCall, S32 argc, const char* argv);
 
