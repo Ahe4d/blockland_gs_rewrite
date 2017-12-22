@@ -1,10 +1,13 @@
 //base/client/canvas.cs
 #include "torque.h"
 void ts__initCanvas(SimObject* obj, int argc, const char* argv[]) { 
+	if(argv[1] == NULL) {
+		Printf("ARGV NULL");
+		return;
+	}
 	const char* vga = GetGlobalVariable("pref::OpenGL::gammaCorrection");
-	Printf("%s", vga);
 	ts__fastCall(fastLookup("", "videoSetGammaCorrection"), NULL, 1, vga);
-	bool ret = (bool)ts__fastCall(fastLookup("", "createCanvas"), NULL, 1, StringTableEntry(argv[1]));
+	int ret = (int)ts__fastCall(fastLookup("", "createCanvas"), NULL, 1, StringTableEntry(argv[1]));
 	if(!ret) {
 		ts__fastCall(fastLookup("", "quit"), NULL, 0);
 	}
@@ -17,7 +20,7 @@ void ts__initCanvas(SimObject* obj, int argc, const char* argv[]) {
 	ts__fastCall(fastLookup("", "setOpenGLAnisotropy"), NULL, 1, GetGlobalVariable("pref::OpenGL::anisotropy"));
 	ts__fastCall(fastLookup("", "setOpenGLMipReduction"), NULL, 1, GetGlobalVariable("pref::OpenGL::mipReduction"));
 	ts__fastCall(fastLookup("", "setOpenGLSkyMipReduction"), NULL, 1, GetGlobalVariable("pref::OpenGL::skyMipReduction"));
-	ts__openALInit(NULL, 0, {}); //Fuck yeah.
+	//ts__openALInit(NULL, 0, {}); //Fuck yeah.
 }
 
 void ts__onWindowReactivate(SimObject* obj, int argc, const char* argv[]) {
@@ -29,9 +32,12 @@ void ts__onWindowReactivate(SimObject* obj, int argc, const char* argv[]) {
 	//i'm colorblind with you tonight..
 	//there is no time to let the blood dry.
 	//you are running my heart..
+	
 	SimObject* canvas = Sim__findObject_name("Canvas");
-	if(canvas == NULL)
+	if(canvas == NULL) {
+		SetGlobalVariable("windowReactivating", "0");
 		return;
+	}
 
 	bool isFullScreen = (bool)ts__fastCall(fastLookup("", "isFullScreen"), NULL, 0);
 	if(isFullScreen) {
