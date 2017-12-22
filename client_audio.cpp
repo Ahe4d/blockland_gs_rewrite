@@ -26,6 +26,9 @@ void ts__openALInit(SimObject* obj, int argc, const char* argv[]) {
 			if(_stricmp(lol, "") == 0) {
 				lol = "0";
 			}
+			//Yes, I know. I can make this better by using a char* and sprintf.
+			//I tried that. It crashes the game.
+			//Don't lecture me on this <3
 			switch(i) {
 				case 1:
 					ts__fastCall(alC, NULL, 2, "1", lol);
