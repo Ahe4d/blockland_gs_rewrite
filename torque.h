@@ -212,6 +212,8 @@ FUCKME(void, , ts__addMessageCallback);
 FUCKME(void, , ts__clientCmdChatMessage);
 //base/client/init.cs.dso
 FUCKME(void, , ts__initClient);
+//base/client/missionDownload.cs.dso
+FUCKME(void, , ts__clientCmdMissionStartPhase1);
 //Call a function
 BLFUNC_EXTERN(void, , RawCall, S32 argc, const char* argv);
 

@@ -34,7 +34,11 @@ int init() {
 	//For some stupid ass reason, addMessageCallback...initializes the video? Wtf?
 //	ConsoleFunction(NULL, "addMessageCallback", ts__addMessageCallback, "implanted by rewrite", 3, 3);
 	ConsoleFunction(NULL, "clientCmdChatMessage", ts__clientCmdChatMessage, "implanted by rewrite", 5, 15);
+	//base/client/init.cs.dso
 	ConsoleFunction(NULL, "initClient", ts__initClient, "implanted by rewrite", 1, 1);
+	//base/client/missionDownload.cs.dso
+	ConsoleFunction(NULL, "clientCmdMissionStartPhase1", ts__clientCmdMissionStartPhase1, "implanted by rewrite", 2, 2);
+
 	Printf("PRGF | Loaded");
 	return 1;
 }
