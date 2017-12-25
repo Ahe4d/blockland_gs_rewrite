@@ -87,7 +87,7 @@ void ts__calcAim(SimObject* obj, int argc, const char* argv[]) {
 		xx = (bosx - posx);
 		yy = (bosy - posy);
 		zz = (bosz - posz);
-		float tt = sqrt(xx * xx + yy * yy + zz * zz) / 85;
+		float tt = sqrt(xx * xx + yy * yy + zz * zz) / 95;
 
 		float vx, vy, vz;
 		vx = (belx - aelx) * tt + xx;
@@ -102,10 +102,14 @@ void ts__calcAim(SimObject* obj, int argc, const char* argv[]) {
 
 		float pitch = atan2(eyeVecZ, sqrt(eyeVecX * eyeVecX + eyeVecY * eyeVecY)) - atan2(vz, sqrt(vx * vx + vy * vy));
 		//Clamp these fuckers
+		Move* newMoves = new Move();
+		newMoves->yaw = yaw;
+		newMoves->pitch = pitch;
+		ClampMove(newMoves);
 		char blah[500];
-		sprintf(blah, "%f %f", yaw, pitch);
+		sprintf(blah, "%f %f", newMoves->yaw, newMoves->pitch);
 		SimObject__setDataField(a, "stuff", StringTableEntry(""), StringTableEntry(blah));
 		//SimObject__setDataField(a, "enable", StringTableEntry(""), StringTableEntry("1"));
-
+		delete newMoves;
 		//Printf("Calculated yaw: %f, pitch: %f", yaw, pitch);
 }

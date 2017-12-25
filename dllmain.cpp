@@ -74,11 +74,49 @@ void __fastcall Player__processTick_Hook(SimObject *this_, int edx, Move *move)
 		int yeah = atoi(var);
 		if(yeah) {
 			float blahx, blahy;
+			char id1[9];
+			//char id2[9];
+			const char* target = SimObject__getDataField(this_, "target", StringTableEntry(""));
+			sprintf(id1, "%d", this_->id);
+			const char* args[] = {"ts__calcAim", id1, target};
+			ts__calcAim(NULL, 3, args);
 			const char* eek = SimObject__getDataField(this_, "stuff", StringTableEntry(""));
 			sscanf(eek, "%g %g", &blahx, &blahy);
-			SimObject__setDataField(this_, "enable", StringTableEntry(""), StringTableEntry("0"));		
-			move->yaw = blahx;
-			move->pitch = blahy;
+			Printf("Client: %g %g, expected: %g %g", move->yaw, move->pitch, blahx, blahy);
+			float diffx, diffy;
+			if(move->yaw == blahx) {
+				Printf("YAW MATCHED SERVER AIMBOT! %g", move->yaw);
+			}
+			else if(move->pitch == blahy) {
+				Printf("PITCH MATCHED SERVER AIMBOT! %g", move->pitch);
+			}
+			if(blahx > move->yaw && blahy > move->pitch) {
+				diffx = blahx - move->yaw;
+				diffy = blahy - move->pitch;
+					//Printf("Pitch and yaw were off by %g and %g", blahx - move->yaw, blahy - move->pitch);
+			}
+			else if(blahx > move->yaw) {
+				diffx = blahx - move->yaw;
+				diffy = move->pitch - blahy;
+					//Printf("Pitch and yaw were off by %g and %g", blahx - move->yaw, move->pitch - blahy);
+			}
+			else if(blahy > move->pitch) {
+				diffx = move->yaw - blahx;
+				diffy = blahy - move->pitch;
+				//Printf("Pitch and yaw were off by %g and %g", move->yaw - blahx, blahy - move->pitch);
+			}
+			else {
+				diffx = move->yaw - blahx;
+				diffy = move->pitch - blahy;
+				//Printf("Pitch and yaw were off by %g and %g", move->yaw - blahx, move->pitch - blahy);
+			}
+			Printf("Pitch and yaw were off by %g and %g", diffx, diffy);
+			if(diffx < 0.005f && diffy < 0.005f && diffy > 0 && diffx > 0) {
+				Printf("Found a suspicious move..");
+			}
+			//SimObject__setDataField(this_, "enable", StringTableEntry(""), StringTableEntry("0"));		
+			//move->yaw = blahx;
+			//move->pitch = blahy;
 			ClampMove(move);
 		}
 	}

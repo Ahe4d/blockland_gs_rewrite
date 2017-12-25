@@ -66,7 +66,7 @@ void ts__initClient(SimObject* obj, int argc, const char* argv[]) {
 	char fuckgod[9];
 	sprintf(fuckgod, "%d", pac);
 	SetGlobalVariable("numClientPackages", fuckgod);
-	ts__fastCall(fastLookup("", "setNetPort"), NULL, 1, "23564");
+	ts__fastCall(fastLookup("", "setNetPort"), NULL, 1, "28000");
 	SimObject* options = Sim__findObject_name("optionsDlg");
 	if(options != NULL) {
 		ts__fastCall(fastLookup(options->mNameSpace->mName, "setShaderQuality"), options, 1, GetGlobalVariable("Pref::ShaderQuality"));
