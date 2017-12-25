@@ -52,6 +52,8 @@ SimObject__registerReferenceFn SimObject__registerReference;
 SimObject__unregisterReferenceFn SimObject__unregisterReference;
 AbstractClassRep_create_classNameFn AbstractClassRep_create_className;
 SimObject__deleteFn SimObject__delete;
+ClampMoveFn ClampMove;
+Player__processTickFn Player__processTick;
 //SimObject__setDataBlockFn SimObject__setDataBlock;
 //fxDTSBrick__setDataBlockFn fxDTSBrick__setDataBlock;
 //fxDTSBrick__plantFn fxDTSBrick__plant;
@@ -431,6 +433,8 @@ bool torque_init()
 
 	addTaggedString = (addTaggedStringFn)(void*)0x5d1120;
 	//First find all the functions
+	Player__processTick = (Player__processTickFn)(void*)0x00531A90;
+	BLSCAN(ClampMove, "\x51\xF3\x0F\x10\x0D", "xxxxx");
 	BLSCAN(initGame, "\x56\x68\x00\x00\x00\x00\x68\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x6A\xFF", "xx????x????x????xx");
 	BLSCAN(LookupNamespace, "\x8B\x44\x24\x04\x85\xC0\x75\x05", "xxxxxxxx");
 	BLSCAN(StringTableInsert, "\x53\x8B\x5C\x24\x08\x55\x56\x57\x53", "xxxxxxxxx");

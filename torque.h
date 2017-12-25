@@ -3,6 +3,8 @@
 #include <iostream>
 #include <cstdarg>
 
+#define M_2PI 6.28318530717958623200
+
 typedef unsigned int U32;
 typedef signed int S32;
 typedef float F32;
@@ -19,6 +21,31 @@ typedef bool(*BoolCallback)  (SimObject *obj, int argc, const char* argv[]);
 
 struct MatrixF {
 	float m[16];
+};
+
+enum MoveConstants
+{
+	MaxTriggerKeys = 6,
+};
+
+struct Point3F {
+	float x;
+	float y;
+	float z;
+};
+
+struct Move
+{
+	// packed storage rep, set in clamp
+	int px, py, pz;
+	unsigned int pyaw, ppitch, proll;
+	float x, y, z;          // float -1 to 1
+	float yaw, pitch, roll; // 0-2PI
+	unsigned int id;               // sync'd between server & client - debugging tool.
+	unsigned int sendCount;
+
+	bool freeLook;
+	bool trigger[MaxTriggerKeys];
 };
 
 struct Namespace
@@ -176,11 +203,14 @@ BLFUNC_EXTERN(bool, __thiscall, SimObject__registerObject, SimObject *this_);
 BLFUNC_EXTERN(void, __thiscall, SimObject__registerReference, SimObject *this_, SimObject **ptr);
 BLFUNC_EXTERN(void, __thiscall, SimObject__unregisterReference, SimObject *this_, SimObject **ptr);
 BLFUNC_EXTERN(ConsoleObject *, , AbstractClassRep_create_className, const char *className);
+BLFUNC_EXTERN(void, __thiscall, ClampMove, Move* move);
 /*
 BLFUNC_EXTERN(void, , SimObject__setDataBlock, SimObject *this_, const char *datablock);
 BLFUNC_EXTERN(bool, , fxDTSBrick__plant, SimObject *this_);
 BLFUNC_EXTERN(void, , fxDTSBrick__setTrusted, SimObject *this_, const char* kappa);
 */
+
+BLFUNC_EXTERN(void, __fastcall, Player__processTick, SimObject* this_, int edx, Move* move);
 BLFUNC_EXTERN(U32, , addTaggedString, const char* string);
 BLFUNC_EXTERN(void, __thiscall, SimObject__delete, SimObject *this_);
 //This function is really ..odd.

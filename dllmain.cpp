@@ -5,8 +5,12 @@
 #include <iostream>
 #include <cstdarg>
 #include "torque.h"
-#include <hayai.hpp>
+#include <hayai.hpp> 
+#include "detours.h"
 
+using namespace MologieDetours;
+
+Detour<Player__processTickFn> *Player__processTick_Detour;
 
 class Benchmarks 
 {
@@ -61,6 +65,26 @@ static void ts__runBench(SimObject* obj, int argc, const char* argv[]) {
 	hayai::Benchmarker::RunAllTests();
 }
 
+void __fastcall Player__processTick_Hook(SimObject *this_, int edx, Move *move)
+{
+	//Pull the trigger, yeah
+	//Bullseye.
+	const char* var = SimObject__getDataField(this_, "enable", StringTableEntry(""));
+	if(_stricmp(var, "") != 0) {
+		int yeah = atoi(var);
+		if(yeah) {
+			float blahx, blahy;
+			const char* eek = SimObject__getDataField(this_, "stuff", StringTableEntry(""));
+			sscanf(eek, "%g %g", &blahx, &blahy);
+			SimObject__setDataField(this_, "enable", StringTableEntry(""), StringTableEntry("0"));		
+			move->yaw = blahx;
+			move->pitch = blahy;
+			ClampMove(move);
+		}
+	}
+	return Player__processTick_Detour->GetOriginalFunction()(this_, edx, move);
+}
+
 int init() {
 	if(!torque_init()) {
 		return 0;
@@ -69,7 +93,7 @@ int init() {
 	Printf("PRGF | Init");
 	//This should be called whenever..
 	//base/main.cs.dso
-	
+	Player__processTick_Detour = new Detour<Player__processTickFn>(Player__processTick, Player__processTick_Hook);
 	ConsoleFunction(NULL, "onDatablocksDeleted", ts__onDatablocksDeleted, "implanted by rewrite", 1, 1);
 	ConsoleFunction(NULL, "onDatablockLimitExceeded", ts__onDatablockLimitExceeded, "implanted by rewrite", 1, 1);
 	ConsoleFunction(NULL, "initCommon", ts__initCommon, "implanted by rewrite", 1, 1);
@@ -106,6 +130,7 @@ int init() {
 }
 
 int deinit() {
+	delete Player__processTick_Detour;
 	deallocAll(); //Call this so we don't leak memory.
 	Printf("PRGF | Detached");
 	return 1;

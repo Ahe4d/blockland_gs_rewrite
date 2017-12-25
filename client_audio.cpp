@@ -20,8 +20,8 @@ void ts__openALInit(SimObject* obj, int argc, const char* argv[]) {
 		ts__fastCall(fastLookup("", "alxListenerf"), NULL, 2, "AL_GAIN_LINEAR", GetGlobalVariable("pref::Audio::masterVolume"));
 		Namespace::Entry* alC = fastLookup("", "alxSetChannelVolume");
 		int i = 0;
-		for(i <= 8; i++;) {
-			char* blah;
+		for(; i <= 8; i++) {
+			char blah[50];
 			sprintf(blah, "pref::Audio::channelVolume%d", i);
 			const char* lol = GetGlobalVariable(blah);
 			if(_stricmp(lol, "") == 0) {
