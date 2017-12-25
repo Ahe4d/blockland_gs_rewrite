@@ -1,0 +1,3 @@
+[submodule "hayai"]
+	path = hayai
+	url = https://github.com/nickbruun/hayai.git

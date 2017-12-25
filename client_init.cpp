@@ -60,9 +60,10 @@ void ts__initClient(SimObject* obj, int argc, const char* argv[]) {
 		SimObject__setDataField(jsg, "lastQueryTime", StringTableEntry(""), StringTableEntry("0"));
 	}
 	Printf("\n--------- Loading Client Add-Ons ---------");
-	ts__fastCall(fastLookup("", "loadClientAddons"), NULL, 0);
-	int pac = (int)ts__fastCall(fastLookup("", "getNumActivePackages"), NULL, 0);
-	char* fuckgod;
+	//This shit slows down my fucking startup.
+	//ts__fastCall(fastLookup("", "loadClientAddons"), NULL, 0);
+	int* pac = (int*)ts__fastCall(fastLookup("", "getNumActivePackages"), NULL, 0);
+	char fuckgod[9];
 	sprintf(fuckgod, "%d", pac);
 	SetGlobalVariable("numClientPackages", fuckgod);
 	ts__fastCall(fastLookup("", "setNetPort"), NULL, 1, "23564");

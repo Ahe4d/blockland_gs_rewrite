@@ -20,7 +20,7 @@ void ts__initCanvas(SimObject* obj, int argc, const char* argv[]) {
 	ts__fastCall(fastLookup("", "setOpenGLAnisotropy"), NULL, 1, GetGlobalVariable("pref::OpenGL::anisotropy"));
 	ts__fastCall(fastLookup("", "setOpenGLMipReduction"), NULL, 1, GetGlobalVariable("pref::OpenGL::mipReduction"));
 	ts__fastCall(fastLookup("", "setOpenGLSkyMipReduction"), NULL, 1, GetGlobalVariable("pref::OpenGL::skyMipReduction"));
-	//ts__openALInit(NULL, 0, {}); //Fuck yeah.
+	ts__openALInit(NULL, 0, {});
 }
 
 void ts__onWindowReactivate(SimObject* obj, int argc, const char* argv[]) {

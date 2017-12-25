@@ -18,6 +18,12 @@ static DWORD GlobalVars; // global variable dictionary pointer
 static std::map<const char*, Namespace::Entry*> cache;
 static std::map<const char*, Namespace*> nscache;
 
+static std::map<const char*, SimObject**> objnamecache;
+
+static std::map<int, SimObject**> objidcache;
+
+//Who do the shit that I do?
+
 
 						 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 						 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -33,6 +39,7 @@ LookupNamespaceFn LookupNamespace;
 initGameFn initGame;
 StringTableInsertFn StringTableInsert;
 Namespace__lookupFn Namespace__lookup;
+addTaggedStringFn addTaggedString;
 CodeBlock__execFn CodeBlock__exec;
 Sim__findObject_nameFn Sim__findObject_name;
 Sim__findObject_idFn Sim__findObject_id;
@@ -216,20 +223,67 @@ void rewrite__fatal() {
 	Printf("!!! THIS SHOULD NEVER HAPPEN !!!");
 }
 
+SimObject** getSafePointer(SimObject* in) {
+	if(in != NULL) {
+		SimObject** retVal = (SimObject**)malloc(sizeof(SimObject*));
+		*retVal = in;
+		SimObject__registerReference(in, retVal);
+		return retVal;
+	}
+}
+
+SimObject** cachedObjFind(const char* name) {
+	//No two objects can EVER have the same name.
+	std::map<const char*, SimObject**>::iterator it;
+	it = objnamecache.find(name);
+	if(it != objnamecache.end()) {
+		return it->second;
+	}
+	else
+	{
+		SimObject* unsafe = Sim__findObject_name(name);
+		if(unsafe != NULL) {
+			SimObject** ret = getSafePointer(unsafe);
+			objnamecache.insert(objnamecache.end(), std::make_pair(name, ret));
+			return ret;
+		}
+	}
+	return nullptr;
+}
+
+SimObject** cachedObjFind(int id) {
+	std::map<int, SimObject**>::iterator it;
+	it = objidcache.find(id);
+	if(it != objidcache.end()) {
+		return it->second;
+	}
+	else {
+		SimObject* unsafe = Sim__findObject_id(id);
+		if(unsafe != NULL) {
+			SimObject** ret = getSafePointer(unsafe);
+			objidcache.insert(objidcache.end(), std::make_pair(id, ret));
+			return ret;
+		}
+	}
+	return nullptr;
+}
+
 void* ts__fastCall(Namespace::Entry* ourCall, SimObject* obj = NULL, int argc = 0, ...) {
 	if(ourCall == NULL) {
 		Printf("Invalid entry.");
 		return nullptr;
 	}
 	const char* argv[argc + 1];
-	va_list args;
-	va_start(args, argc);
 	argv[0] = ourCall->mFunctionName;
-	for(int i = 0; i < argc; i++) {
-		argv[i + 1] = va_arg(args, const char*);
+	if(argc != 0) {
+		va_list args;
+		va_start(args, argc);
+		for(int i = 0; i < argc; i++) {
+			argv[i + 1] = va_arg(args, const char*);
+		}
+		va_end(args);
 	}
 	argc++;
-	va_end(args);
 	if(ourCall->mType == Namespace::Entry::ScriptFunctionType) {
 		if(ourCall->mFunctionOffset) {
 			const char* retVal = CodeBlock__exec(
@@ -276,6 +330,12 @@ void* ts__fastCall(Namespace::Entry* ourCall, SimObject* obj = NULL, int argc = 
 	return nullptr; 
 }
 
+void giveUsATagMofo(char* out, const char* in) {
+	int tag = addTaggedString(in);
+	out[0] = 0x01; //the magic sauce
+	sprintf(out + 1, "%d ", tag);
+}
+
 Namespace::Entry* fastLookup(const char* ourNamespace, const char* name) {
 	Namespace* ns;
 	Namespace::Entry* entry;
@@ -294,7 +354,7 @@ Namespace::Entry* fastLookup(const char* ourNamespace, const char* name) {
 			ns = its->second;
 			if(ns == NULL) {
 				//Somehow it got nullptr'd..
-				ns = LookupNamespace(StringTableEntry(ourNamespace)); 
+				ns = LookupNamespace(ourNamespace); 
 				if(ns == NULL) {
 					//THIS SHOULD NEVER HAPPEN!
 					rewrite__fatal();
@@ -340,6 +400,21 @@ Namespace::Entry* fastLookup(const char* ourNamespace, const char* name) {
 	return entry;
 }
 
+void deallocAll() {
+	Printf("Attempting to deallocate memory.");
+	for (const auto& kv : objidcache) {
+		Printf("Freeing %d", kv.first);
+		SimObject__unregisterReference(*kv.second, kv.second);
+		free((void*)kv.second);
+	}
+
+	for (const auto& kv : objnamecache) {
+		Printf("Freeing %s", kv.first);
+		SimObject__unregisterReference(*kv.second, kv.second);
+		free((void*)kv.second);
+	}
+}
+
 //Initialize the Torque Interface
 bool torque_init()
 {
@@ -354,6 +429,7 @@ bool torque_init()
 
 	ShapeNameHudOnRender = (ShapeNameHudOnRenderFn)ScanFunc("\x81\xec\x00\x00\x00\x00\x53\x8b\xd9\x8a\x83\xc9\x00\x00\x00\x84\xc0\x55\x56\x57\x89\x5c\x24\x14", "xx????xxxxxxxxxxxxxxxxxx");
 
+	addTaggedString = (addTaggedStringFn)(void*)0x5d1120;
 	//First find all the functions
 	BLSCAN(initGame, "\x56\x68\x00\x00\x00\x00\x68\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x6A\xFF", "xx????x????x????xx");
 	BLSCAN(LookupNamespace, "\x8B\x44\x24\x04\x85\xC0\x75\x05", "xxxxxxxx");

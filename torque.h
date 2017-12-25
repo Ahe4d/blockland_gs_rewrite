@@ -17,6 +17,10 @@ typedef float(*FloatCallback) (SimObject *obj, int argc, const char* argv[]);
 typedef void(*VoidCallback)  (SimObject *obj, int argc, const char* argv[]);
 typedef bool(*BoolCallback)  (SimObject *obj, int argc, const char* argv[]);
 
+struct MatrixF {
+	float m[16];
+};
+
 struct Namespace
 {
 	const char* mName;
@@ -69,6 +73,9 @@ struct Namespace
 	char * lastUsage;
 };
 static Namespace* GlobalNS;
+struct StringHandle {
+	U32 index;
+};
 struct ConsoleObject
 {
 };
@@ -145,6 +152,11 @@ BLFUNC_EXTERN(void, , Printf, const char* format, ...);
 extern const char *StringTableEntry(const char *str, bool caseSensitive = false);
 void* ts__fastCall(Namespace::Entry* ourCall, SimObject* obj, int argc, ...);
 Namespace::Entry* fastLookup(const char* ourNamespace, const char* name);
+void giveUsATagMofo(char* out, const char* in);
+
+SimObject** cachedObjFind(const char* name);
+SimObject** cachedObjFind(int id);
+void deallocAll();
 
 extern DWORD StringTable;
 extern bool setDatablock;
@@ -169,6 +181,7 @@ BLFUNC_EXTERN(void, , SimObject__setDataBlock, SimObject *this_, const char *dat
 BLFUNC_EXTERN(bool, , fxDTSBrick__plant, SimObject *this_);
 BLFUNC_EXTERN(void, , fxDTSBrick__setTrusted, SimObject *this_, const char* kappa);
 */
+BLFUNC_EXTERN(U32, , addTaggedString, const char* string);
 BLFUNC_EXTERN(void, __thiscall, SimObject__delete, SimObject *this_);
 //This function is really ..odd.
 //Help.
@@ -214,6 +227,11 @@ FUCKME(void, , ts__clientCmdChatMessage);
 FUCKME(void, , ts__initClient);
 //base/client/missionDownload.cs.dso
 FUCKME(void, , ts__clientCmdMissionStartPhase1);
+FUCKME(void, , ts__clientCmdMissionStartPhase2);
+FUCKME(void, , ts__clientCmdMissionStartPhase3);
+
+//our anticheat stuff
+FUCKME(void, , ts__calcAim);
 //Call a function
 BLFUNC_EXTERN(void, , RawCall, S32 argc, const char* argv);
 
