@@ -67,12 +67,13 @@ static void ts__runBench(SimObject* obj, int argc, const char* argv[]) {
 
 void __fastcall Player__processTick_Hook(SimObject *this_, int edx, Move *move)
 {
-	//Pull the trigger, yeah
-	//Bullseye.
 	const char* var = SimObject__getDataField(this_, "enable", StringTableEntry(""));
 	if(_stricmp(var, "") != 0) {
 		int yeah = atoi(var);
 		if(yeah) {
+			if(move->x < 0.0f && move->x >= 0.2f) {
+				Printf("There's a client moveforwarding!");
+			}
 			float blahx, blahy;
 			char id1[9];
 			//char id2[9];

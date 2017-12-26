@@ -38,8 +38,6 @@ void ts__calcAim(SimObject* obj, int argc, const char* argv[]) {
 		Printf("Could not find an object.");
 		return;
 	}
-
-		//They're the same class..
 		Namespace::Entry* getTransform = fastLookup(a->mNameSpace->mName, "getTransform");
 		Namespace::Entry* getTransformB = fastLookup(b->mNameSpace->mName, "getTransform");
 		
@@ -50,8 +48,6 @@ void ts__calcAim(SimObject* obj, int argc, const char* argv[]) {
 		if(getVel == NULL || getVel2 == NULL || getTransform == NULL || getEyeV == NULL || getTransformB == NULL) {
 			return;
 		}
-		//This'll spit out a MatrixF..
-		//G-g-get low...
 		float posx, posy, posz, angAxisX, angAxisY, angAxisZ, angle; //All the fields in a matrixf.
 		
 		float bosx, bosy, bosz, bngAxisX, bngAxisY, bngAxisZ, bngle;
