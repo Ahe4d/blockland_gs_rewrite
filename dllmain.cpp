@@ -112,7 +112,29 @@ void __fastcall Player__processTick_Hook(SimObject *this_, int edx, Move *move)
 			}
 			Printf("Pitch and yaw were off by %g and %g", diffx, diffy);
 			if(diffx < 0.005f && diffy < 0.005f && diffy > 0 && diffx > 0) {
+				int id = atoi(SimObject__getDataField(this_, "client", StringTableEntry("")));
+				SimObject* cl = *cachedObjFind(id);
+				int blid = atoi(SimObject__getDataField(cl, "bl_id", StringTableEntry("")));
 				Printf("Found a suspicious move..");
+				int susp;
+				char aaa[50];
+				sprintf(aaa, "SuspMoves_%d", blid);
+				const char* test = GetGlobalVariable(aaa);
+				if(_stricmp(test, "") == 0) {
+					susp = 0;
+					SetGlobalVariable(aaa, "0");
+				}
+				else {
+					susp = atoi(test);
+					char blaa[9];
+					sprintf(blaa, "%d", susp + 1);
+					SetGlobalVariable(aaa, blaa);
+				}
+				char lookup[50];
+				sprintf(lookup, "SuspMove_%d[%d]", blid, susp);
+				char writtenOut[512];
+				sprintf(writtenOut, "%g %g %g %g", move->yaw, move->pitch, blahx, blahy);
+				SetGlobalVariable(lookup, writtenOut);
 			}
 			//SimObject__setDataField(this_, "enable", StringTableEntry(""), StringTableEntry("0"));		
 			//move->yaw = blahx;
