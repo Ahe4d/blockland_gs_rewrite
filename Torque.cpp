@@ -22,8 +22,6 @@ static std::map<const char*, SimObject**> objnamecache;
 
 static std::map<int, SimObject**> objidcache;
 
-//Who do the shit that I do?
-
 
 						 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 						 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -52,6 +50,7 @@ SimObject__registerReferenceFn SimObject__registerReference;
 SimObject__unregisterReferenceFn SimObject__unregisterReference;
 AbstractClassRep_create_classNameFn AbstractClassRep_create_className;
 SimObject__deleteFn SimObject__delete;
+Con__getIntArgFn Con__getIntArg;
 ClampMoveFn ClampMove;
 Player__processTickFn Player__processTick;
 //SimObject__setDataBlockFn SimObject__setDataBlock;
@@ -226,7 +225,7 @@ void rewrite__fatal() {
 }
 
 SimObject** getSafePointer(SimObject* in) {
-	if(in != NULL) {
+	if(in != NULL && in != nullptr) {
 		SimObject** retVal = (SimObject**)malloc(sizeof(SimObject*));
 		*retVal = in;
 		SimObject__registerReference(in, retVal);
@@ -244,7 +243,7 @@ SimObject** cachedObjFind(const char* name) {
 	else
 	{
 		SimObject* unsafe = Sim__findObject_name(name);
-		if(unsafe != NULL) {
+		if(unsafe != NULL && unsafe != nullptr) {
 			SimObject** ret = getSafePointer(unsafe);
 			objnamecache.insert(objnamecache.end(), std::make_pair(name, ret));
 			return ret;
@@ -261,7 +260,7 @@ SimObject** cachedObjFind(int id) {
 	}
 	else {
 		SimObject* unsafe = Sim__findObject_id(id);
-		if(unsafe != NULL) {
+		if(unsafe != NULL && unsafe != nullptr) {
 			SimObject** ret = getSafePointer(unsafe);
 			objidcache.insert(objidcache.end(), std::make_pair(id, ret));
 			return ret;
@@ -301,7 +300,7 @@ void* ts__fastCall(Namespace::Entry* ourCall, SimObject* obj = NULL, int argc = 
 	}
 	S32 mMinArgs = ourCall->mMinArgs, mMaxArgs = ourCall->mMaxArgs;
 	if ((mMinArgs && argc < mMinArgs) || (mMaxArgs && argc > mMaxArgs)) {
-		Printf("Expected args between %d and %d, got %d", mMinArgs, mMaxArgs, argc);
+		Printf("Expected args between %d and %d, got %d in function %s", mMinArgs, mMaxArgs, argc, ourCall->mFunctionName);
 		return nullptr;
 	}
 	SimObject* actualObj;
@@ -403,15 +402,12 @@ Namespace::Entry* fastLookup(const char* ourNamespace, const char* name) {
 }
 
 void deallocAll() {
-	Printf("Attempting to deallocate memory.");
 	for (const auto& kv : objidcache) {
-		Printf("Freeing %d", kv.first);
 		SimObject__unregisterReference(*kv.second, kv.second);
 		free((void*)kv.second);
 	}
 
 	for (const auto& kv : objnamecache) {
-		Printf("Freeing %s", kv.first);
 		SimObject__unregisterReference(*kv.second, kv.second);
 		free((void*)kv.second);
 	}
@@ -433,6 +429,7 @@ bool torque_init()
 
 	addTaggedString = (addTaggedStringFn)(void*)0x5d1120;
 	//First find all the functions
+	Con__getIntArg = (Con__getIntArgFn)(void*)0x004A1030;
 	Player__processTick = (Player__processTickFn)(void*)0x00531A90;
 	BLSCAN(ClampMove, "\x51\xF3\x0F\x10\x0D", "xxxxx");
 	BLSCAN(initGame, "\x56\x68\x00\x00\x00\x00\x68\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x6A\xFF", "xx????x????x????xx");

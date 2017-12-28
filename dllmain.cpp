@@ -7,6 +7,8 @@
 #include "torque.h"
 #include <hayai.hpp> 
 #include "detours.h"
+#include "mathfu/vector.h"
+#include "mathfu/glsl_mappings.h"
 
 using namespace MologieDetours;
 
@@ -15,6 +17,26 @@ Detour<Player__processTickFn> *Player__processTick_Detour;
 class Benchmarks 
 {
 public:
+	void VectorAdd() {
+		//start off with two vectors in a string.
+		mathfu::vec3 vectorA(50.15f, 1585.5f, 185.6f);
+		mathfu::vec3 vectorB(1.05f, 1.9556f, 1.5859f);
+		mathfu::vec3 vectorC = vectorA + vectorB;
+	}
+
+	void VectorScale() {
+		mathfu::vec3 vectorA(50.15f, 1585.5f, 185.6f);
+		mathfu::vec3 scala(1.583f, 1.583f, 1.583f); //i'll make a vectorscale thing later lol
+		vectorA *= scala;
+	}
+
+	void VectorDot() {
+		mathfu::vec3 vectorA(50.15f, 1585.5f, 185.6f);
+		mathfu::vec3 vectorB(1.05f, 1.9556f, 1.5859f);
+		F32 dot = mathfu::vec3::DotProduct(vectorA, vectorB);
+	}
+
+/*
 	void CachedCall() {
 		Namespace::Entry* us = fastLookup(ns, fn);
 		ts__fastCall(us, NULL, 2, "55", "123");
@@ -39,24 +61,45 @@ public:
 		}
 		ts__fastCall(ourEntry, NULL, 2, "55", "123");
 	}
-
-	Benchmarks(const char* namefuck, const char* fnName) 
+*/
+	Benchmarks() 
 	{
-		ns = namefuck;
-		fn = fnName;
+		//ns = namefuck;
+		//fn = fnName;
 	}
 private:
-	const char* ns;
-	const char* fn;
+	//const char* ns;
+	//const char* fn;
 };
 
-BENCHMARK(Benchmarks, CachedCall, 500, 10) {
-	Benchmarks("", "mPow").CachedCall();
-}
+BENCHMARK(Benchmarks, VectorAdd, 10, 10000) {
+	Benchmarks().VectorAdd();
+} 
+BENCHMARK(Benchmarks, VectorScale, 10, 10000) {
+	Benchmarks().VectorScale();
+} 
+BENCHMARK(Benchmarks, VectorDot, 10, 10000) {
+	Benchmarks().VectorDot();
+} 
 
-BENCHMARK(Benchmarks, UnCachedCall, 500, 10) {
-	Benchmarks("", "mPow").UnCachedCall();
-}
+//BENCHMARK(Benchmarks, CachedCall, 500, 10) {
+//	Benchmarks("", "mPow").CachedCall();
+//}
+
+//BENCHMARK(Benchmarks, UnCachedCall, 500, 10) {
+//	Benchmarks("", "mPow").UnCachedCall();
+//}
+
+typedef char *(__thiscall *StringStack__getArgBuffer_Type)(void *this_, unsigned int arg);
+StringStack__getArgBuffer_Type StringStack__getArgBuffer = (StringStack__getArgBuffer_Type)0x004A0D10;
+
+typedef const char *(*Con__execute_Type)(int argc, const char *argv[]);
+Con__execute_Type Con__execute = (Con__execute_Type)0x004A7870;
+
+typedef void (*Con__execute_o_Type)(void *object, int argc, const char *argv[]);
+Con__execute_o_Type Con__execute_o = (Con__execute_o_Type)0x004A8B40;
+
+void *STR = (void *)0x0070CDC8;
 
 static void ts__runBench(SimObject* obj, int argc, const char* argv[]) {
 	hayai::ConsoleOutputter consoleOutputter;
@@ -67,133 +110,142 @@ static void ts__runBench(SimObject* obj, int argc, const char* argv[]) {
 
 void __fastcall Player__processTick_Hook(SimObject *this_, int edx, Move *move)
 {
-	const char* var = SimObject__getDataField(this_, "enable", StringTableEntry(""));
-	if(_stricmp(var, "") != 0) {
+	const char* var = SimObject__getDataField(this_, "BLACDisable", StringTableEntry(""));
+	if(this_ == nullptr) {
+		return;
+	}
+	if(_stricmp(var, "") != 0 && !(this_->mFlags & 2)) {
 		int yeah = atoi(var);
-		if(yeah) {
-			if(move->x < 0.0f && move->x >= 0.2f) {
-				Printf("There's a client moveforwarding!");
+		if(!yeah) {
+			const char* gross = SimObject__getDataField(this_, "aimLock", StringTableEntry(""));
+			int enable = 0;
+			if(_stricmp(gross, "") != 0) {
+				enable = atoi(gross);
 			}
-			float blahx, blahy;
-			char id1[9];
-			//char id2[9];
-			const char* target = SimObject__getDataField(this_, "target", StringTableEntry(""));
-			sprintf(id1, "%d", this_->id);
-			const char* args[] = {"ts__calcAim", id1, target};
-			ts__calcAim(NULL, 3, args);
-			const char* eek = SimObject__getDataField(this_, "stuff", StringTableEntry(""));
-			sscanf(eek, "%g %g", &blahx, &blahy);
-			Printf("Client: %g %g, expected: %g %g", move->yaw, move->pitch, blahx, blahy);
-			float diffx, diffy;
-			if(move->yaw == blahx) {
-				Printf("YAW MATCHED SERVER AIMBOT! %g", move->yaw);
-			}
-			else if(move->pitch == blahy) {
-				Printf("PITCH MATCHED SERVER AIMBOT! %g", move->pitch);
-			}
-			if(blahx > move->yaw && blahy > move->pitch) {
-				diffx = blahx - move->yaw;
-				diffy = blahy - move->pitch;
-					//Printf("Pitch and yaw were off by %g and %g", blahx - move->yaw, blahy - move->pitch);
-			}
-			else if(blahx > move->yaw) {
-				diffx = blahx - move->yaw;
-				diffy = move->pitch - blahy;
-					//Printf("Pitch and yaw were off by %g and %g", blahx - move->yaw, move->pitch - blahy);
-			}
-			else if(blahy > move->pitch) {
-				diffx = move->yaw - blahx;
-				diffy = blahy - move->pitch;
-				//Printf("Pitch and yaw were off by %g and %g", move->yaw - blahx, blahy - move->pitch);
+			//Printf("calculating aim");
+			WrappedPosData out = {false, mathfu::vec2(0.0f, 0.0f)};
+			if(this_ != nullptr && move != nullptr) {
+				out = ts__calcAim(this_->id);
 			}
 			else {
-				diffx = move->yaw - blahx;
-				diffy = move->pitch - blahy;
-				//Printf("Pitch and yaw were off by %g and %g", move->yaw - blahx, move->pitch - blahy);
+				return;
 			}
-			Printf("Pitch and yaw were off by %g and %g", diffx, diffy);
-			if(diffx < 0.005f && diffy < 0.005f && diffy > 0 && diffx > 0) {
-				int id = atoi(SimObject__getDataField(this_, "client", StringTableEntry("")));
-				SimObject* cl = *cachedObjFind(id);
-				int blid = atoi(SimObject__getDataField(cl, "bl_id", StringTableEntry("")));
-				Printf("Found a suspicious move..");
-				int susp;
-				char aaa[50];
-				sprintf(aaa, "SuspMoves_%d", blid);
-				const char* test = GetGlobalVariable(aaa);
-				if(_stricmp(test, "") == 0) {
-					susp = 0;
-					SetGlobalVariable(aaa, "0");
+			//Printf("done calculating");
+			if(out.success) {
+				//Printf("run all this stuff");
+				mathfu::vec2 aimData = out.data;
+				mathfu::vec2 diff;
+				mathfu::vec2 moveStuff(move->yaw, move->pitch);
+				if(aimData[0] > moveStuff[0] && aimData[1] > moveStuff[1]) {
+					diff = aimData - moveStuff;
+				}
+				else if(aimData[0] > moveStuff[0]) {
+					diff = mathfu::vec2(aimData[0] - moveStuff[0], moveStuff[1] - aimData[1]);
+				}
+				else if(aimData[1] > moveStuff[1]) {
+					diff = mathfu::vec2(moveStuff[0] - aimData[0], aimData[1] - moveStuff[1]);
 				}
 				else {
-					susp = atoi(test);
-					char blaa[9];
-					sprintf(blaa, "%d", susp + 1);
-					SetGlobalVariable(aaa, blaa);
+					diff = moveStuff - aimData;
 				}
-				char lookup[50];
-				sprintf(lookup, "SuspMove_%d[%d]", blid, susp);
-				char writtenOut[512];
-				sprintf(writtenOut, "%g %g %g %g", move->yaw, move->pitch, blahx, blahy);
-				SetGlobalVariable(lookup, writtenOut);
+				//Printf("writing callback");
+				if(diff[0] < 0.005f && diff[1] < 0.005f && diff[0] > 0 && diff[1] > 0 && enable == 0 && diff[0] != aimData[0] && diff[1] != aimData[1]) {
+					if(moveStuff[0] > 0 || moveStuff[1] > 0) {
+						const char *argv[3];
+						argv[0] = "onPlayerSuspMove";
+						if(this_ != nullptr) {
+							argv[1] = Con__getIntArg(this_->id);
+						}
+						else {
+							return;
+						}
+						char *writtenOut = StringStack__getArgBuffer(STR, 300);
+						sprintf_s(writtenOut, 300, "%g %g %g %g %g %g", moveStuff[0], moveStuff[1], aimData[0], aimData[1], diff[0], diff[1]);
+						argv[2] = writtenOut;
+						Con__execute(3, argv);
+					}
+				}
+				if(enable) {
+					move->yaw = aimData[0];
+					move->pitch = aimData[1];
+				}
+				ClampMove(move);
 			}
-			//SimObject__setDataField(this_, "enable", StringTableEntry(""), StringTableEntry("0"));		
-			//move->yaw = blahx;
-			//move->pitch = blahy;
-			ClampMove(move);
 		}
 	}
 	return Player__processTick_Detour->GetOriginalFunction()(this_, edx, move);
 }
+int distribute = 0;
 
 int init() {
 	if(!torque_init()) {
 		return 0;
 	}
 
-	Printf("PRGF | Init");
+	if(distribute == 0) {
+		Printf("PRGF | Init");
+	}
+	else
+	{
+		Printf("BLAC | Init");
+	}
 	//This should be called whenever..
 	//base/main.cs.dso
+
 	Player__processTick_Detour = new Detour<Player__processTickFn>(Player__processTick, Player__processTick_Hook);
-	ConsoleFunction(NULL, "onDatablocksDeleted", ts__onDatablocksDeleted, "implanted by rewrite", 1, 1);
-	ConsoleFunction(NULL, "onDatablockLimitExceeded", ts__onDatablockLimitExceeded, "implanted by rewrite", 1, 1);
-	ConsoleFunction(NULL, "initCommon", ts__initCommon, "implanted by rewrite", 1, 1);
-	ConsoleFunction(NULL, "initBaseClient", ts__initBaseClient, "implanted by rewrite", 1, 1);
-	ConsoleFunction(NULL, "initBaseServer", ts__initBaseServer, "implanted by rewrite", 1, 1);
-	//base/client/audio.cs.dso
+	if(distribute == 0) {
+		ConsoleFunction(NULL, "onDatablocksDeleted", ts__onDatablocksDeleted, "implanted by rewrite", 1, 1);
+		ConsoleFunction(NULL, "onDatablockLimitExceeded", ts__onDatablockLimitExceeded, "implanted by rewrite", 1, 1);
+		ConsoleFunction(NULL, "initCommon", ts__initCommon, "implanted by rewrite", 1, 1);
+		ConsoleFunction(NULL, "initBaseClient", ts__initBaseClient, "implanted by rewrite", 1, 1);
+		ConsoleFunction(NULL, "initBaseServer", ts__initBaseServer, "implanted by rewrite", 1, 1);
+		//base/client/audio.cs.dso
 	
-	ConsoleFunction(NULL, "OpenALInit", ts__openALInit, "implanted by rewrite", 1, 1);
-	ConsoleFunction(NULL, "OpenALShutdown", ts__openALShutdown, "implanted by rewrite", 1, 1);
-	//base/client/canvas.cs.dso
-	ConsoleFunction(NULL, "initCanvas", ts__initCanvas, "implanted by rewrite", 2, 2);
-	ConsoleFunction(NULL, "onWindowReactivate", ts__onWindowReactivate, "implanted by rewrite", 1, 1);
-	ConsoleFunction(NULL, "resetCanvas", ts__resetCanvas, "implanted by rewrite", 1, 1);
-	ConsoleFunction(NULL, "restartAudio", ts__restartAudio, "implanted by rewrite", 1, 1);
-	//base/client/mission.cs.dso
-	ConsoleFunction(NULL, "clientCmdMissionStart", ts__clientCmdMissionStart, "implanted by rewrite", 2, 2);
-	ConsoleFunction(NULL, "clientCmdMissionEnd", ts__clientCmdMissionEnd, "implanted by rewrite", 2, 2);
-	//base/client/message.cs.dso
-	//For some stupid ass reason, addMessageCallback...initializes the video? Wtf?
-//	ConsoleFunction(NULL, "addMessageCallback", ts__addMessageCallback, "implanted by rewrite", 3, 3);
-	ConsoleFunction(NULL, "clientCmdChatMessage", ts__clientCmdChatMessage, "implanted by rewrite", 5, 15);
-	//base/client/init.cs.dso
-	ConsoleFunction(NULL, "initClient", ts__initClient, "implanted by rewrite", 1, 1);
-	//base/client/missionDownload.cs.dso
-	ConsoleFunction(NULL, "clientCmdMissionStartPhase1", ts__clientCmdMissionStartPhase1, "implanted by rewrite", 0, 2);
-	ConsoleFunction(NULL, "clientCmdMissionStartPhase2", ts__clientCmdMissionStartPhase2, "implanted by rewrite", 0, 2);
-	ConsoleFunction(NULL, "clientCmdMissionStartPhase3", ts__clientCmdMissionStartPhase3, "implanted by rewrite", 0, 5);
-//Benchmarking
-	ConsoleFunction(NULL, "dll_runBench", ts__runBench, "implanted by rewrite", 1, 1);
-//Anticheat
-	ConsoleFunction(NULL, "calculateAim", ts__calcAim, "implanted by rewrite", 3, 3);
-	Printf("PRGF | Loaded");
+		ConsoleFunction(NULL, "OpenALInit", ts__openALInit, "implanted by rewrite", 1, 1);
+		ConsoleFunction(NULL, "OpenALShutdown", ts__openALShutdown, "implanted by rewrite", 1, 1);
+		//base/client/canvas.cs.dso
+		ConsoleFunction(NULL, "initCanvas", ts__initCanvas, "implanted by rewrite", 2, 2);
+		ConsoleFunction(NULL, "onWindowReactivate", ts__onWindowReactivate, "implanted by rewrite", 1, 1);
+		ConsoleFunction(NULL, "resetCanvas", ts__resetCanvas, "implanted by rewrite", 1, 1);
+		ConsoleFunction(NULL, "restartAudio", ts__restartAudio, "implanted by rewrite", 1, 1);
+		//base/client/mission.cs.dso
+		ConsoleFunction(NULL, "clientCmdMissionStart", ts__clientCmdMissionStart, "implanted by rewrite", 2, 2);
+		ConsoleFunction(NULL, "clientCmdMissionEnd", ts__clientCmdMissionEnd, "implanted by rewrite", 2, 2);
+		//base/client/message.cs.dso
+		//For some stupid ass reason, addMessageCallback...initializes the video? Wtf?
+		//ConsoleFunction(NULL, "addMessageCallback", ts__addMessageCallback, "implanted by rewrite", 3, 3);
+		ConsoleFunction(NULL, "clientCmdChatMessage", ts__clientCmdChatMessage, "implanted by rewrite", 5, 15);
+		//base/client/init.cs.dso
+		ConsoleFunction(NULL, "initClient", ts__initClient, "implanted by rewrite", 1, 1);
+		//base/client/missionDownload.cs.dso
+		ConsoleFunction(NULL, "clientCmdMissionStartPhase1", ts__clientCmdMissionStartPhase1, "implanted by rewrite", 0, 2);
+		ConsoleFunction(NULL, "clientCmdMissionStartPhase2", ts__clientCmdMissionStartPhase2, "implanted by rewrite", 0, 2);
+		ConsoleFunction(NULL, "clientCmdMissionStartPhase3", ts__clientCmdMissionStartPhase3, "implanted by rewrite", 0, 5);
+	}
+	//Benchmarking
+	ConsoleFunction(NULL, "dll_runBench", ts__runBench, "() - Run a benchmark on the float performance.", 1, 1);
+	//Anticheat
+	//ConsoleFunction(NULL, "calculateAim", ts__calcAim, "(Player us) - calculate stuff..", 2, 2);
+	if(distribute == 0) {
+		Printf("PRGF | Loaded");
+	}
+	else
+	{
+		Printf("BLAC | Loaded");
+	}
 	return 1;
 }
 
 int deinit() {
 	delete Player__processTick_Detour;
 	deallocAll(); //Call this so we don't leak memory.
-	Printf("PRGF | Detached");
+	if(distribute == 0) {
+		Printf("PRGF | Detached");
+	}
+	else
+	{
+		Printf("BLAC | Detached");
+	}
 	return 1;
 }
 

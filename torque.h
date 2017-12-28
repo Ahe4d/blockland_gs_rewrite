@@ -1,15 +1,22 @@
 #pragma once
 #include <windows.h>
 #include <iostream>
+#include <map>
 #include <cstdarg>
+#include "mathfu/vector.h"
+#include "mathfu/glsl_mappings.h"
 
 #define M_2PI 6.28318530717958623200
 
+typedef signed short S16;
 typedef unsigned int U32;
 typedef signed int S32;
 typedef float F32;
 typedef double F64;
 typedef U32 SimObjectId;
+
+#define FANG2IANG(x)   ((U32)((S16)((F32(0x10000) / M_2PI) * x)) & 0xFFFF)
+#define IANG2FANG(x) (F32)((M_2PI / F32(0x10000)) * (F32)((S16)x))
 
 struct SimObject;
 
@@ -46,6 +53,11 @@ struct Move
 
 	bool freeLook;
 	bool trigger[MaxTriggerKeys];
+};
+
+struct velRecorded {
+	unsigned int time;
+	mathfu::vec3 vel;
 };
 
 struct Namespace
@@ -103,8 +115,14 @@ static Namespace* GlobalNS;
 struct StringHandle {
 	U32 index;
 };
+
 struct ConsoleObject
 {
+};
+
+struct WrappedPosData {
+	bool success;
+	mathfu::vec2 data;
 };
 
 struct SimObject
@@ -178,6 +196,9 @@ BLFUNC_EXTERN(void, , Printf, const char* format, ...);
 
 extern const char *StringTableEntry(const char *str, bool caseSensitive = false);
 void* ts__fastCall(Namespace::Entry* ourCall, SimObject* obj, int argc, ...);
+mathfu::vec3 Player__getPosition(DWORD playerPtr);
+mathfu::vec3 Player__getVelocity(DWORD player);
+WrappedPosData ts__calcAim(U32 id);
 Namespace::Entry* fastLookup(const char* ourNamespace, const char* name);
 void giveUsATagMofo(char* out, const char* in);
 
@@ -194,6 +215,7 @@ BLFUNC_EXTERN(Namespace::Entry *, __thiscall, Namespace__lookup, Namespace *this
 //BLFUNC_EXTERN(void *, __thiscall, CodeBlock__exec, void *this_, U32 offset, const char *fnName, Namespace *ns, U32 argc, const char **argv, bool noCalls, const char *packageName, int setFrame)
 BLFUNC_EXTERN(const char *, __thiscall, CodeBlock__exec, void *this_, U32 offset, Namespace *ns, const char *fnName, U32 argc, const char **argv, bool noCalls, const char *packageName, int setFrame)
 BLFUNC_EXTERN(SimObject *, , Sim__findObject_name, const char *name);
+BLFUNC_EXTERN(const char *, , Con__getIntArg, int arg);
 BLFUNC_EXTERN(SimObject *, , Sim__findObject_id, unsigned int id);
 BLFUNC_EXTERN(unsigned int, , Sim__postEvent, SimObject *destObject, SimEvent *event, U32 time);
 BLFUNC_EXTERN(void, , Sim__cancelEvent, unsigned int eventSequence);
@@ -261,7 +283,7 @@ FUCKME(void, , ts__clientCmdMissionStartPhase2);
 FUCKME(void, , ts__clientCmdMissionStartPhase3);
 
 //our anticheat stuff
-FUCKME(void, , ts__calcAim);
+//FUCKME(WrappedPosData, , ts__calcAim);
 //Call a function
 BLFUNC_EXTERN(void, , RawCall, S32 argc, const char* argv);
 

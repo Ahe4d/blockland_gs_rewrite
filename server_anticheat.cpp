@@ -4,7 +4,20 @@
 #include <iostream>
 #include <algorithm>
 #include <cmath>
+#include <map>
+#include <utility> 
+#include "mathfu/vector.h"
+#include "mathfu/glsl_mappings.h"
 
+//yuh...
+//yuh...
+//lmao
+
+static std::map<int, velRecorded> lastVel;
+
+static int firstRun = 1;
+
+/*
 F32 clamp(F32 in, F32 min, F32 max) {
 	return std::max(std::min(in, max), min);
 }
@@ -24,88 +37,247 @@ void normalize(F32& x, F32& y, F32& z) {
 		z = 1.0f;
 	}
 }
+*/
 
-void ts__calcAim(SimObject* obj, int argc, const char* argv[]) {
-	//Do the shit here.
-	if(argc != 3) {
-		Printf("Boi wtf r u doin");
-		return;
-	}
+int SimSet__getCount(DWORD set)
+{
+	return *(DWORD*)(set + 0x34);
+} //Speed it up..
 
-	SimObject* a = *cachedObjFind(atoi(argv[1]));
-	SimObject* b = *cachedObjFind(atoi(argv[2]));
-	if(a == NULL || b == NULL) {
-		Printf("Could not find an object.");
-		return;
-	}
-		Namespace::Entry* getTransform = fastLookup(a->mNameSpace->mName, "getTransform");
-		Namespace::Entry* getTransformB = fastLookup(b->mNameSpace->mName, "getTransform");
-		
-		Namespace::Entry* getEyeV = fastLookup(a->mNameSpace->mName, "getEyeVector");
-		
-		Namespace::Entry* getVel = fastLookup(a->mNameSpace->mName, "getVelocity");
-		Namespace::Entry* getVel2 = fastLookup(b->mNameSpace->mName, "getVelocity");
-		if(getVel == NULL || getVel2 == NULL || getTransform == NULL || getEyeV == NULL || getTransformB == NULL) {
-			return;
+
+SimObject* SimSet__getObject(DWORD set, int index)
+{
+	DWORD ptr1 = *(DWORD*)(set + 0x3C);
+	SimObject* ptr2 = (SimObject*)*(DWORD*)(ptr1 + 0x4 * index);
+	return ptr2;
+}
+
+mathfu::vec3 Player__getPosition(DWORD playerPtr)
+{
+	float x = *((float *)(playerPtr + 0x68));
+	float y = *((float *)(playerPtr + 0x78));
+	float z = *((float *)(playerPtr + 0x88));
+
+	mathfu::vec3 pos(x, y, z);
+	return pos;
+}
+
+mathfu::vec3 Player__getVelocity(DWORD player)
+{
+	float velX = (*reinterpret_cast<float*>((player + 2044)));
+	float velY = (*reinterpret_cast<float*>((player + 2048)));
+	float velZ = (*reinterpret_cast<float*>((player + 2052)));
+	mathfu::vec3 vel(velX, velY, velZ);
+	return vel;
+}
+
+mathfu::vec3 extrapolate(mathfu::vec3 pos, mathfu::vec3 vel) {
+	return pos + (vel * 32);
+}
+
+SimObject* getNearestClient(SimObject* us) {
+	SimObject* cg = *cachedObjFind("ClientGroup");
+	int closest, dist;
+	closest = 99999;
+	dist = 99999999;
+	if(cg != NULL && us != NULL) {
+		//int count = (int)ts__fastCall(fastLookup(cg->mNameSpace->mName, "getCount"), cg, 1, id3);
+		int count = SimSet__getCount((DWORD)cg);
+		if(count < 2) { //Only work when a client can get a target onto another..
+			return nullptr;
 		}
-		float posx, posy, posz, angAxisX, angAxisY, angAxisZ, angle; //All the fields in a matrixf.
-		
-		float bosx, bosy, bosz, bngAxisX, bngAxisY, bngAxisZ, bngle;
+		SimObject* theNearest = nullptr;
+		for(int wtflol = 0; wtflol < count; wtflol++) {
+			SimObject* obj = SimSet__getObject((DWORD)cg, wtflol);
+			if(obj != NULL){
+				const char* player = SimObject__getDataField(obj, "player", StringTableEntry(""));
+				if(_stricmp(player, "") != 0) {
+					//Printf("Getting player pointer..");
+					SimObject* pl = nullptr;
+					SimObject** theboys = cachedObjFind(atoi(player));
+					if(theboys != nullptr) 
+						pl = *theboys;
+					//Printf("Making sure that it isn't null.");
+					if(pl != NULL && obj != NULL && pl != nullptr && us != nullptr && obj != nullptr) {
+						//Printf("Making sure that their id isn't ours..");
+						if(pl->id != us->id) {
+							//Printf("Getting player positions");
+							mathfu::vec3 qos = Player__getPosition((DWORD)pl);
+							mathfu::vec3 pos = Player__getPosition((DWORD)us);
+							mathfu::vec3 len = qos - pos;
+							float vecDist = len.Length();
+							if(vecDist <= dist) {
+								//Printf("Comparing positions");
+								dist = vecDist;
+								closest = wtflol;
+								theNearest = pl;
+							}
+						}
+					}
+				}
+			}
+		}
+		return theNearest;
+	}
+	return nullptr;
+}
 
-		float eyeVecX, eyeVecY, eyeVecZ;
-		//Impacto.
 
-		char id1[9];
-		char id2[9];
-		sprintf(id1, "%d", a->id);
-		sprintf(id2, "%d", b->id);
-		const char* trans = (const char*)ts__fastCall(getTransform, a, 1, id1);
-		sscanf(trans, "%f %f %f %f %f %f %f", &posx, &posy, 
-			&posz, &angAxisX, &angAxisY, &angAxisZ, &angle);
+WrappedPosData ts__calcAim(U32 id) {
+	//Do the shit here.
+	//Printf("Running...");
 
-		const char* trans2 = (const char*)ts__fastCall(getTransformB, b, 1, id2);
-		sscanf(trans2, "%f %f %f %f %f %f %f", &bosx, &bosy, 
-			&bosz, &bngAxisX, &bngAxisY, &bngAxisZ, &bngle); 
-
+	if(firstRun) {
+		firstRun = 0;
+	}
+	SimObject* a = *cachedObjFind(id);
+	//Printf("getting nearest client");
+	SimObject* b = getNearestClient(a);
+	if(a == nullptr || b == nullptr || a == NULL || b == NULL) {
+		return {false, mathfu::vec2(0.0f, 0.0f)};
+	}
+	//Printf("Looking up EyeVector..");
+	Namespace::Entry* getEyeV = fastLookup("Player", "getEyeVector");
+	if(getEyeV == NULL) {
+		return {false, mathfu::vec2(0.0f, 0.0f)};
+	}
+	int itaend = 0;
+	int itbend = 0;
+	std::map<int, velRecorded>::iterator ita;
+	std::map<int, velRecorded>::iterator itb;
+	ita = lastVel.find(a->id);
+	itb = lastVel.find(b->id);
+	const char* id1 = Con__getIntArg(a->id);
+	//Printf("Getting position..");
+	mathfu::vec3 posA, posB;
+	if(a != nullptr && b != nullptr) {
+		posA = Player__getPosition((DWORD)a);
+		posB = Player__getPosition((DWORD)b);
+	}
+	else
+	{
+		return {false, mathfu::vec2(0.0f, 0.0f)};
+	}
+	//Printf("Getting eyevec");
+	mathfu::vec3 eyeVec(0.0f, 0.0f, 0.0f); //Extract their eyevector here..
+	if(a != nullptr) {
 		const char* eye = (const char*)ts__fastCall(getEyeV, a, 1, id1);
-		sscanf(eye, "%g %g %g", &eyeVecX, &eyeVecY, &eyeVecZ);
-		float aelx, aely, aelz;
-		float belx, bely, belz;
-		//float lastVelX, lastVelY, lastVelZ;
-		//float lastVelThemX, lastVelThemY, lastVelThemZ;
-		const char* ael = (const char*)ts__fastCall(getVel, a, 1, id1);
-		const char* bel = (const char*)ts__fastCall(getVel2, b, 1, id2);
-		//const char* lastVel = SimObject__getDataField(a, "lastVel", StringTableEntry(""));
-		//const char* lastVelThem = SimObject__getDataField(b, "lastVel", StringTableEntry(""));
-		sscanf(ael, "%f %f %f", &aelx, &aely, &aelz);
-		sscanf(bel, "%f %f %f", &belx, &bely, &belz);
-		float xx, yy, zz;
-		xx = (bosx - posx);
-		yy = (bosy - posy);
-		zz = (bosz - posz);
-		float tt = sqrt(xx * xx + yy * yy + zz * zz) / 95;
+		sscanf(eye, "%f %f %f", &eyeVec[0], &eyeVec[1], &eyeVec[2]);
+	}
+	else {
+		return {false, mathfu::vec2(0.0f, 0.0f)};
+	}
 
-		float vx, vy, vz;
-		vx = (belx - aelx) * tt + xx;
-		vy = (bely - aely) * tt + yy;
-		vz = (belz - aelz) * tt + zz;
+	mathfu::vec3 oldVecA(0.0f, 0.0f, 0.0f);
+	mathfu::vec3 oldVecB(0.0f, 0.0f, 0.0f);
+	//Printf("Getting stored velocity");
+	U32 loaded;
+	if(ita != lastVel.end()) {
+		loaded = ita->second.time;
+		oldVecA = ita->second.vel;
+	}
+	else {
+		itaend = 1;
+		loaded = 0;
+	}
 
-		//Find the best object.
-		normalize(vx, vy, vz);
-		//normalize(eyeVecX, eyeVecY, eyeVecZ);
-		//Printf("Eye vec: %f %f %f, position: %f %f %f", eyeVecX, eyeVecY, eyeVecZ, vx, vy, vz);
-		float yaw = atan2(vx, vy) - atan2(eyeVecX, eyeVecY);
+	if(itb != lastVel.end()) {
+		oldVecB = itb->second.vel;
+	}
+	else
+	{
+		itbend = 1;
+	}
+	//Printf("Getting new velocity");
+	mathfu::vec3 velA, velB;
+	if(a != nullptr && b != nullptr) {
+		velA = Player__getVelocity((DWORD)a);
+		velB = Player__getVelocity((DWORD)b);
+	}
+	else {
+		if(!itaend) {
+			lastVel.erase(ita);
+		}
+		if(!itbend) {
+			lastVel.erase(itb);
+		}
+		return {false, mathfu::vec2(0.0f, 0.0f)};
+	}
 
-		float pitch = atan2(eyeVecZ, sqrt(eyeVecX * eyeVecX + eyeVecY * eyeVecY)) - atan2(vz, sqrt(vx * vx + vy * vy));
-		//Clamp these fuckers
-		Move* newMoves = new Move();
-		newMoves->yaw = yaw;
-		newMoves->pitch = pitch;
-		ClampMove(newMoves);
-		char blah[500];
-		sprintf(blah, "%f %f", newMoves->yaw, newMoves->pitch);
-		SimObject__setDataField(a, "stuff", StringTableEntry(""), StringTableEntry(blah));
-		//SimObject__setDataField(a, "enable", StringTableEntry(""), StringTableEntry("1"));
-		delete newMoves;
-		//Printf("Calculated yaw: %f, pitch: %f", yaw, pitch);
+	if(oldVecB[0] == 0.0f && oldVecB[1] == 0.0f && oldVecB[2] == 0.0f) {
+		oldVecB = velB;
+		oldVecA = velA;
+	}
+
+	U32 time = GetTickCount();
+	U32 timeDif = time - loaded;
+	if(timeDif > 500) {
+		timeDif = time;
+	}
+
+	if(timeDif < 1) {
+		timeDif = 1;
+	}
+
+	int routine1 = 1;
+	//Printf("Time dif: %d", timeDif);
+	float yaw, pitch;
+	if(routine1){
+		mathfu::vec3 aa = (velA - oldVecA) / timeDif;
+		mathfu::vec3 bb = (velB - oldVecB) / timeDif;
+		mathfu::vec3 gg = posB - posA;
+		float tt = gg.Length() / 95;
+		//float vx, vy, vz;
+		//Printf("doing aimbot math");
+		mathfu::vec3 v = bb - aa;
+		v *= 0.5;
+		v *= tt;
+		v *= tt;
+		v += velB - velA;
+		v *= tt;
+		v += gg;
+		v.Normalize();
+		//eyeVec.Normalize();
+		yaw = atan2(v[0], v[1]) - atan2(eyeVec[0], eyeVec[1]);
+		pitch = atan2(eyeVec[2], eyeVec.xy().Length()) - atan2(v[2], v.xy().Length());
+	}
+	else {
+		mathfu::vec3 predLoc(0.0f, 0.0f, 0.0f);
+		predLoc = (posB - posA) + ((velB - oldVecB) * timeDif) + (0.5 * timeDif * timeDif);
+		predLoc.Normalize();
+		yaw = atan2(predLoc[0], predLoc[1]) - atan2(eyeVec[0], eyeVec[1]);
+		pitch = atan2(eyeVec[2], sqrt(eyeVec[0] * eyeVec[0] + eyeVec[1] * eyeVec[1])) - atan2(predLoc[2], sqrt(predLoc[0] * predLoc[0] + predLoc[1] * predLoc[1]));
+	}
+	//Printf("Clamping move");
+	Move* eek = new Move; //Construct a new move so it can clamp it CORRECTLY...
+	eek->yaw = yaw;
+	eek->pitch = pitch;
+	ClampMove(eek);
+	yaw = eek->yaw;
+	pitch = eek->pitch;
+	mathfu::vec2 ret(yaw, pitch);
+	delete eek;
+	//Printf("Storing in map");
+    if(!itaend) {
+   //   Printf("erasing");
+       lastVel.erase(ita);
+    }
+    
+    //Printf("insert1");
+    velRecorded vendetta = {time, velA};
+    if(a != nullptr && a != NULL) {
+    	lastVel.insert(lastVel.end(), std::make_pair(a->id, vendetta));
+    }
+
+    if(!itbend) {
+    	lastVel.erase(itb);
+    }
+
+    velRecorded second = {time, velB};
+    if(b != nullptr && b != NULL) {
+    	lastVel.insert(lastVel.end(), std::make_pair(b->id, second));
+    }
+
+   // Printf("We're done here.");
+	return {true, ret};
 }
