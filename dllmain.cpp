@@ -122,6 +122,7 @@ void __fastcall Player__processTick_Hook(SimObject *this_, int edx, Move *move)
 			if(_stricmp(gross, "") != 0) {
 				enable = atoi(gross);
 			}
+			int spinme = 0;
 			//Printf("calculating aim");
 			WrappedPosData out = {false, mathfu::vec2(0.0f, 0.0f)};
 			if(this_ != nullptr && move != nullptr) {
@@ -134,7 +135,7 @@ void __fastcall Player__processTick_Hook(SimObject *this_, int edx, Move *move)
 			if(out.success) {
 				//Printf("run all this stuff");
 				mathfu::vec2 aimData = out.data;
-				mathfu::vec2 diff;
+				mathfu::vec2 diff(0.0f, 0.0f);
 				mathfu::vec2 moveStuff(move->yaw, move->pitch);
 				if(aimData[0] > moveStuff[0] && aimData[1] > moveStuff[1]) {
 					diff = aimData - moveStuff;
@@ -149,7 +150,7 @@ void __fastcall Player__processTick_Hook(SimObject *this_, int edx, Move *move)
 					diff = moveStuff - aimData;
 				}
 				//Printf("writing callback");
-				if(diff[0] < 0.005f && diff[1] < 0.005f && diff[0] > 0 && diff[1] > 0 && enable == 0 && diff[0] != aimData[0] && diff[1] != aimData[1]) {
+				if(diff[0] < 0.0005f && diff[1] < 0.0005f && diff[0] > 0 && diff[1] > 0 && enable == 0 && diff[0] != aimData[0] && diff[1] != aimData[1]) {
 					if(moveStuff[0] > 0 || moveStuff[1] > 0) {
 						const char *argv[3];
 						argv[0] = "onPlayerSuspMove";
@@ -165,17 +166,48 @@ void __fastcall Player__processTick_Hook(SimObject *this_, int edx, Move *move)
 						Con__execute(3, argv);
 					}
 				}
-				if(enable) {
+
+				if(spinme) {
+					float f1, f2, deltaView;
+					float oldAn = aimData[1];
+					if(oldAn < 0.0f)
+						f1 = 360.0f + oldAn;
+					else
+						f1 = oldAn;
+
+					if(aimData[0] < 0.0f)
+						f2 = 360.0f + aimData[0];
+					else
+						f2 = aimData[0];
+
+					if(f2 < f1)
+						deltaView = abs(f2 - f1);
+					else
+						deltaView = 360.0f - abs(f1 - f2);
+
+					deltaView = 360.0f - deltaView;
+					//Printf("%d", cos(degreesToRadians(deltaView)) * move->x + cos(degreesToRadians(deltaView + 90.0f)));
+
+					float fMove = cos(degreesToRadians(deltaView)) * move->x + cos(degreesToRadians(deltaView + 90.0f)) * move->y;
+					float sMove = sin(degreesToRadians(deltaView)) * move->x + sin(degreesToRadians(deltaView + 90.0f)) * move->y;
+					Printf("%f %f %f", deltaView, fMove, sMove);
+					move->x = fMove;
+					move->y = sMove;
+					move->yaw = aimData[0];
+				}
+				else if(enable) {
 					move->yaw = aimData[0];
 					move->pitch = aimData[1];
 				}
+
 				ClampMove(move);
 			}
 		}
 	}
 	return Player__processTick_Detour->GetOriginalFunction()(this_, edx, move);
 }
-int distribute = 0;
+
+static int distribute = 1;
 
 int init() {
 	if(!torque_init()) {
@@ -237,8 +269,6 @@ int init() {
 }
 
 int deinit() {
-	delete Player__processTick_Detour;
-	deallocAll(); //Call this so we don't leak memory.
 	if(distribute == 0) {
 		Printf("PRGF | Detached");
 	}
@@ -246,6 +276,8 @@ int deinit() {
 	{
 		Printf("BLAC | Detached");
 	}
+	delete Player__processTick_Detour;
+	deallocAll(); //Call this so we don't leak memory.
 	return 1;
 }
 

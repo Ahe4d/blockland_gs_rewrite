@@ -17,6 +17,11 @@ typedef U32 SimObjectId;
 
 #define FANG2IANG(x)   ((U32)((S16)((F32(0x10000) / M_2PI) * x)) & 0xFFFF)
 #define IANG2FANG(x) (F32)((M_2PI / F32(0x10000)) * (F32)((S16)x))
+// Converts degrees to radians.
+#define degreesToRadians(angleDegrees) ((angleDegrees) * M_PI / 180.0)
+
+// Converts radians to degrees.
+#define radiansToDegrees(angleRadians) ((angleRadians) * 180.0 / M_PI)
 
 struct SimObject;
 
@@ -59,6 +64,7 @@ struct velRecorded {
 	unsigned int time;
 	mathfu::vec3 vel;
 };
+
 
 struct Namespace
 {

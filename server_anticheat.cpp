@@ -14,7 +14,6 @@
 //lmao
 
 static std::map<int, velRecorded> lastVel;
-
 static int firstRun = 1;
 
 /*
@@ -42,7 +41,7 @@ void normalize(F32& x, F32& y, F32& z) {
 int SimSet__getCount(DWORD set)
 {
 	return *(DWORD*)(set + 0x34);
-} //Speed it up..
+}
 
 
 SimObject* SimSet__getObject(DWORD set, int index)
@@ -82,10 +81,12 @@ SimObject* getNearestClient(SimObject* us) {
 	dist = 99999999;
 	if(cg != NULL && us != NULL) {
 		//int count = (int)ts__fastCall(fastLookup(cg->mNameSpace->mName, "getCount"), cg, 1, id3);
+		//Printf("Get count");
 		int count = SimSet__getCount((DWORD)cg);
 		if(count < 2) { //Only work when a client can get a target onto another..
 			return nullptr;
 		}
+		//Printf("Get the nearest..");
 		SimObject* theNearest = nullptr;
 		for(int wtflol = 0; wtflol < count; wtflol++) {
 			SimObject* obj = SimSet__getObject((DWORD)cg, wtflol);
@@ -95,8 +96,12 @@ SimObject* getNearestClient(SimObject* us) {
 					//Printf("Getting player pointer..");
 					SimObject* pl = nullptr;
 					SimObject** theboys = cachedObjFind(atoi(player));
-					if(theboys != nullptr) 
+					if(theboys != nullptr) {
 						pl = *theboys;
+					}
+					else {
+						return nullptr;
+					}
 					//Printf("Making sure that it isn't null.");
 					if(pl != NULL && obj != NULL && pl != nullptr && us != nullptr && obj != nullptr) {
 						//Printf("Making sure that their id isn't ours..");
@@ -137,19 +142,18 @@ WrappedPosData ts__calcAim(U32 id) {
 		return {false, mathfu::vec2(0.0f, 0.0f)};
 	}
 	//Printf("Looking up EyeVector..");
-	Namespace::Entry* getEyeV = fastLookup("Player", "getEyeVector");
-	if(getEyeV == NULL) {
+	Namespace::Entry* getEyeV = fastLookup(a->mNameSpace->mName, "getEyeVector");
+	if(getEyeV == NULL && getEyeV == nullptr) {
 		return {false, mathfu::vec2(0.0f, 0.0f)};
 	}
 	int itaend = 0;
 	int itbend = 0;
-	std::map<int, velRecorded>::iterator ita;
-	std::map<int, velRecorded>::iterator itb;
-	ita = lastVel.find(a->id);
-	itb = lastVel.find(b->id);
+	std::map<int, velRecorded>::iterator ita = lastVel.find(a->id);
+	std::map<int, velRecorded>::iterator itb = lastVel.find(b->id);
 	const char* id1 = Con__getIntArg(a->id);
 	//Printf("Getting position..");
-	mathfu::vec3 posA, posB;
+	mathfu::vec3 posA(0.0f, 0.0f, 0.0f);
+	mathfu::vec3 posB(0.0f, 0.0f, 0.0f);
 	if(a != nullptr && b != nullptr) {
 		posA = Player__getPosition((DWORD)a);
 		posB = Player__getPosition((DWORD)b);
@@ -171,7 +175,7 @@ WrappedPosData ts__calcAim(U32 id) {
 	mathfu::vec3 oldVecA(0.0f, 0.0f, 0.0f);
 	mathfu::vec3 oldVecB(0.0f, 0.0f, 0.0f);
 	//Printf("Getting stored velocity");
-	U32 loaded;
+	U32 loaded = 0;
 	if(ita != lastVel.end()) {
 		loaded = ita->second.time;
 		oldVecA = ita->second.vel;
@@ -189,18 +193,13 @@ WrappedPosData ts__calcAim(U32 id) {
 		itbend = 1;
 	}
 	//Printf("Getting new velocity");
-	mathfu::vec3 velA, velB;
+	mathfu::vec3 velA(0.0f, 0.0f, 0.0f);
+	mathfu::vec3 velB(0.0f, 0.0f, 0.0f);
 	if(a != nullptr && b != nullptr) {
 		velA = Player__getVelocity((DWORD)a);
 		velB = Player__getVelocity((DWORD)b);
 	}
 	else {
-		if(!itaend) {
-			lastVel.erase(ita);
-		}
-		if(!itbend) {
-			lastVel.erase(itb);
-		}
 		return {false, mathfu::vec2(0.0f, 0.0f)};
 	}
 
@@ -212,6 +211,9 @@ WrappedPosData ts__calcAim(U32 id) {
 	U32 time = GetTickCount();
 	U32 timeDif = time - loaded;
 	if(timeDif > 500) {
+		//Velocity is too old. Discard it.
+		//oldVecB = velB;
+		//oldVecA = velA;
 		timeDif = time;
 	}
 
@@ -221,8 +223,26 @@ WrappedPosData ts__calcAim(U32 id) {
 
 	int routine1 = 1;
 	//Printf("Time dif: %d", timeDif);
-	float yaw, pitch;
-	if(routine1){
+	float yaw = 0.0f;
+	float pitch = 0.0f;
+
+	//const char* spinwhee = SimObject__getDataField(a, "spinBot", StringTableEntry(""));
+	//if(_stricmp(spinwhee, "1") == 0) {
+		//Printf("WHEE!");
+	//	routine1 = 2;
+	//}
+
+	if(routine1 == 2) {
+		float rads = atan2(eyeVec[0], eyeVec[1]);
+		float degres = rads * 180.0 / M_PI;
+		
+		double rate =  360.0/1.618033988749895;
+		float idkreally = fmod(rate * 32, 360.0);
+		yaw = idkreally;
+		pitch = degres;
+		//Printf("our degrees: %f, radians: %f", deg, aaaa);
+	}
+	else if(routine1 == 1){
 		mathfu::vec3 aa = (velA - oldVecA) / timeDif;
 		mathfu::vec3 bb = (velB - oldVecB) / timeDif;
 		mathfu::vec3 gg = posB - posA;
@@ -241,7 +261,7 @@ WrappedPosData ts__calcAim(U32 id) {
 		yaw = atan2(v[0], v[1]) - atan2(eyeVec[0], eyeVec[1]);
 		pitch = atan2(eyeVec[2], eyeVec.xy().Length()) - atan2(v[2], v.xy().Length());
 	}
-	else {
+	else if(routine1 == 0) {
 		mathfu::vec3 predLoc(0.0f, 0.0f, 0.0f);
 		predLoc = (posB - posA) + ((velB - oldVecB) * timeDif) + (0.5 * timeDif * timeDif);
 		predLoc.Normalize();
@@ -257,15 +277,16 @@ WrappedPosData ts__calcAim(U32 id) {
 	pitch = eek->pitch;
 	mathfu::vec2 ret(yaw, pitch);
 	delete eek;
+
 	//Printf("Storing in map");
     if(!itaend) {
-   //   Printf("erasing");
+     // Printf("erasing");
        lastVel.erase(ita);
     }
     
-    //Printf("insert1");
-    velRecorded vendetta = {time, velA};
+   // Printf("insert1");
     if(a != nullptr && a != NULL) {
+    	velRecorded vendetta = {time, velA};
     	lastVel.insert(lastVel.end(), std::make_pair(a->id, vendetta));
     }
 
@@ -273,11 +294,12 @@ WrappedPosData ts__calcAim(U32 id) {
     	lastVel.erase(itb);
     }
 
-    velRecorded second = {time, velB};
+    //Printf("insert2");
     if(b != nullptr && b != NULL) {
+    	velRecorded second = {time, velB};
     	lastVel.insert(lastVel.end(), std::make_pair(b->id, second));
     }
 
-   // Printf("We're done here.");
+    //Printf("We're done here.");
 	return {true, ret};
 }
