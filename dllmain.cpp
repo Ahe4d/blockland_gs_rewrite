@@ -207,7 +207,7 @@ void __fastcall Player__processTick_Hook(SimObject *this_, int edx, Move *move)
 	return Player__processTick_Detour->GetOriginalFunction()(this_, edx, move);
 }
 
-static int distribute = 1;
+static int distribute = 0;
 
 int init() {
 	if(!torque_init()) {
@@ -256,8 +256,15 @@ int init() {
 	}
 	//Benchmarking
 	ConsoleFunction(NULL, "dll_runBench", ts__runBench, "() - Run a benchmark on the float performance.", 1, 1);
+	ConsoleFunction("Player", "test123", ts__runBench, "() - Test", 1, 1);
 	//Anticheat
 	//ConsoleFunction(NULL, "calculateAim", ts__calcAim, "(Player us) - calculate stuff..", 2, 2);
+	Namespace::Entry* gll = fastLookup("", "dll_runBench");
+	Printf("%s %s %s", gll->mNamespace->mName, gll->mNamespace->mPackage, gll->mNamespace->lastUsage);
+
+	//gll->mNamespace->mPackage = "hello";
+	//Namespace::Entry* qq = fastLookup("", "veryUniqueName");
+	//Printf("%s %s %s", qq->mNamespace->mName, qq->mNamespace->mPackage, qq->mNamespace->lastUsage);
 	if(distribute == 0) {
 		Printf("PRGF | Loaded");
 	}
